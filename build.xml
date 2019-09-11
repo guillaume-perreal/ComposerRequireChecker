@@ -74,11 +74,12 @@
     <!-- ============================================  -->
     <target name="phar-prepare-dependencies" depends="phar-copy-source">
         <!--install dependencies without development requirements-->
-        <composer command="install">
+        <exec executable="composer" checkreturn="true" passthru="true">
+            <arg value="install" />
             <arg value="--no-dev"/>
             <arg value="-o"/>
             <arg line="-d ${phar-dir}"/>
-        </composer>
+        </exec>
 
         <!--delete documentation and test files from dependencies-->
         <delete dir="${phar-dir}/vendor/symfony/console/Tests"/>
@@ -91,7 +92,7 @@
     <!-- ============================================  -->
     <!-- Target: phar-build                            -->
     <!-- ============================================  -->
-    <target name="phar-build" depends="run-test,phar-copy-source">
+    <target name="phar-create" depends="phar-copy-source">
         <!--find out the version / tag-->
         <echo message="getting version string from git... "/>
         <exec command="git describe --tags --dirty=-dev --always" outputProperty="version-string"
@@ -141,10 +142,36 @@
         </exec>
     </target>
 
+    <target name="phar-test">
+        <exec executable="php" checkreturn="true" passthru="true">
+            <arg path="${build-dir}/${phing.project.name}.phar" />
+        </exec>
+
+        <exec executable="php" checkreturn="true" passthru="true">
+            <arg path="${build-dir}/${phing.project.name}.phar" />
+            <arg value="check" />
+            <arg value="--config-file" />
+            <arg value="data/config.dist.json" />
+        </exec>
+
+        <exec executable="php" checkreturn="true" passthru="true">
+            <arg path="${build-dir}/${phing.project.name}.phar" />
+            <arg value="check" />
+            <arg value="composer.json" />
+        </exec>
+    </target>
+
     <!-- ============================================  -->
     <!-- Target: phar-build-release                    -->
     <!-- ============================================  -->
     <target name="phar-build-release"
-            depends="phar-clean, phar-prepare, phar-copy-source, phar-prepare-dependencies, phar-build, phar-sign"/>
+            depends="phar-build, run-test, phar-sign"/>
+
+    <!-- ============================================  -->
+    <!-- Target: phar-build                            -->
+    <!-- ============================================  -->
+    <target name="phar-build"
+            depends="phar-clean, phar-prepare, phar-copy-source, phar-prepare-dependencies, phar-create, phar-test"/>
+
 
 </project>
